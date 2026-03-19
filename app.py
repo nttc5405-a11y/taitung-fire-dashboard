@@ -70,7 +70,7 @@ try:
         f_df = f_df[mask]
 
     # --- 主頁面 ---
-    st.title("🚒 台東分隊大補帖更新紀錄")
+    st.title("🚒 更新紀錄")
     
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("📚 總資料筆數", len(df))
