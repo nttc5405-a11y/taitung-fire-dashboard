@@ -11,8 +11,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. 資料讀取 (ID 已帶入)
-# SHEET_ID = "1gi-0Lgy16kTp_S806AIivIUlC0m-_q9-uZPEZY5mLY4"
+# 2. 資料讀取 (使用您發佈到網路的 CSV 連結)
 SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTD3BDxVvOoKEEiqIC02C85oRWRIBoxYVRmsZUMaVgsge9pUJwGYBQMi4XXgSSNnOtPaR8ZtKCbrUuG/pub?output=csv"
 
 @st.cache_data(ttl=300)
@@ -52,14 +51,34 @@ try:
     time_range = st.sidebar.radio("查看區間", ["全部", "最近 7 天", "最近 30 天"], index=0, horizontal=True)
     search_query = st.sidebar.text_input("🔍 關鍵字搜尋", placeholder="搜尋標題、內容或標籤...")
     
+    # 管理類別與類別過濾
     mgt_list = ["全部"] + sorted([str(x) for x in df['管理類別'].dropna().unique()])
     selected_mgt = st.sidebar.selectbox("管理類別 (大項)", mgt_list)
     
     sub_cats = df['類別'].unique() if selected_mgt == "全部" else df[df['管理類別'] == selected_mgt]['類別'].unique()
     selected_sub = st.sidebar.multiselect("詳細類別篩選", sorted([str(x) for x in sub_cats]), default=[str(x) for x in sub_cats])
 
+    # --- 精進 1：新增獨立的標籤 (Tag) 篩選器 ---
+    all_tags = set()
+    for tags in df['標籤(Tag)'].dropna():
+        for tag in str(tags).split(','):
+            clean_tag = tag.strip()
+            if clean_tag and clean_tag != '無':
+                all_tags.add(clean_tag)
+    
+    selected_tags = st.sidebar.multiselect("🏷️ 標籤篩選", sorted(list(all_tags)))
+
     # --- 過濾邏輯 ---
     f_df = df[df['類別'].isin(selected_sub)]
+    
+    # 執行標籤過濾
+    if selected_tags:
+        tag_mask = f_df['標籤(Tag)'].astype(str).apply(
+            lambda x: any(tag in x for tag in selected_tags)
+        )
+        f_df = f_df[tag_mask]
+
+    # 執行時間與關鍵字過濾
     if time_range == "最近 7 天":
         f_df = f_df[f_df['更新日期'] >= (today - timedelta(days=7))]
     elif time_range == "最近 30 天":
@@ -87,11 +106,11 @@ try:
         # B. 視覺化圖表
         c1, c2 = st.columns([1, 1.2])
         with c1:
-            # 修正關鍵點：將 y='index' 改為 y='類別'
             cat_counts = f_df['類別'].value_counts().reset_index()
-            # 在新版 Pandas 中，reset_index() 會產生 ['類別', 'count'] 欄位
+            # --- 精進 2：改用藍色系 (Blues)，並加上數值標籤 (text_auto=True) ---
             fig_cat = px.bar(cat_counts, x='count', y='類別', orientation='h', title='業務領域分佈',
-                             labels={'count':'筆數', '類別':'類別'}, color='count', color_continuous_scale='Reds')
+                             labels={'count':'筆數', '類別':''}, color='count', 
+                             color_continuous_scale='Blues', text_auto=True)
             fig_cat.update_layout(showlegend=False, height=350, yaxis={'categoryorder':'total ascending'})
             st.plotly_chart(fig_cat, use_container_width=True)
         
@@ -108,6 +127,9 @@ try:
         display_cols = ['更新日期', '管理類別', '類別', '更新標題', '連結', '重要性(1-10)', '標籤(Tag)']
         plot_df = f_df[display_cols].copy()
         plot_df['更新日期'] = plot_df['更新日期'].dt.strftime('%Y-%m-%d')
+        
+        # --- 精進 3：空白連結防呆，沒有網址的項目設為 None ---
+        plot_df['連結'] = plot_df['連結'].apply(lambda x: x if str(x).startswith('http') else None)
 
         st.dataframe(
             plot_df.style.apply(highlight_rows, axis=1),
