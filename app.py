@@ -12,8 +12,8 @@ st.set_page_config(
 )
 
 # 2. 資料讀取 (ID 已帶入)
-SHEET_ID = "1gi-0Lgy16kTp_S806AIivIUlC0m-_q9-uZPEZY5mLY4"
-SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+# SHEET_ID = "1gi-0Lgy16kTp_S806AIivIUlC0m-_q9-uZPEZY5mLY4"
+SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTD3BDxVvOoKEEiqIC02C85oRWRIBoxYVRmsZUMaVgsge9pUJwGYBQMi4XXgSSNnOtPaR8ZtKCbrUuG/pub?output=csv"
 
 @st.cache_data(ttl=300)
 def load_data():
