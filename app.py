@@ -115,7 +115,8 @@ try:
             st.plotly_chart(fig_cat, use_container_width=True)
         
         with c2:
-            trend_df = f_df.resample('M', on='更新日期').size().reset_index(name='件數')
+            # === 已修正：將 'M' 改為 'ME' ===
+            trend_df = f_df.resample('ME', on='更新日期').size().reset_index(name='件數')
             if not trend_df.empty:
                 fig_trend = px.line(trend_df, x='更新日期', y='件數', title='每月更新頻率趨勢', markers=True)
                 fig_trend.update_traces(line_color='#FF4B4B', line_width=3)
